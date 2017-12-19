@@ -195,7 +195,10 @@ msg = msgTemplate.format(
 # build log message content, i.e. list each merge
 for rev in logData.findall("./logentry/msg"):
     for line in rev.text.splitlines():
+        # remove jira ID's
         line = re.sub('[a-zA-Z]{2,3}-[0-9]*', '', line)
+
+        # cleanup mesages
         line = re.sub('[ ]*:[ ]*', '', line)
         line = re.sub('[\.]{3,}', '', line)
         line = line.strip()
@@ -203,6 +206,7 @@ for rev in logData.findall("./logentry/msg"):
         if len(line) > 0:
             msg += line + "\n"
 
+# write commit message to file for tortoise svn to use
 with open(args.messageFile, "w+t") as f:
     f.write(msg)
 
