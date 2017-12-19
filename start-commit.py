@@ -13,7 +13,7 @@ import argparse
 import re
 import subprocess
 import xml.etree.ElementTree as ET
-import urllib.parse
+import six.moves.urllib as urllib
 
 # parse cli arguments supplied by tortoise SVN
 # https://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-dug-settings.html#tsvn-dug-settings-hooks
@@ -161,7 +161,7 @@ if(args.debug is False):
     sys.excepthook = exception_handler
 
 
-if not os.path.isdir(args.cwd) or not os.path.samefile(os.getcwd(), args.cwd):
+if not os.path.isdir(args.cwd) or os.stat(os.getcwd()) != os.stat(args.cwd):
     raise Exception("args.cwd and actual cwd are different")
 
 # obtain the path and the revision in case of '-wc' argument
