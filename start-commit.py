@@ -7,15 +7,13 @@ commit failure cases
  * wc has unversioned *.h or *.cpp files (mostlikely forgotten?)
  * ...
 """
-from __future__ import print_function
 import sys
 import os
 import argparse
-import tempfile
 import re
 import subprocess
-import untangle
-import urllib
+import xml.etree.ElementTree as ET
+import urllib.parse
 
 # parse cli arguments supplied by tortoise SVN
 # https://tortoisesvn.net/docs/release/TortoiseSVN_en/tsvn-dug-settings.html#tsvn-dug-settings-hooks
@@ -55,22 +53,16 @@ def ObtainChangesetLog(path, changeset):
     revXML = runCommand([
         'svn', 'log', path, '--xml', '-c', str(changeset)
         ])
-    with tempfile.NamedTemporaryFile(delete=False) as f:
-        print(f.name)
-        f.write(revXML.encode())
-
-    revData = untangle.parse(f.name)
-    if(args.debug):
-        print(revXML)
-
-    return revData
+    return ET.fromstring(revXML)
 
 
 def GetRelativeURL(path):
     infoXml = runCommand([
         'svn', 'info', '--xml', path])
-    info = untangle.parse(infoXml)
-    return urllib.parse.unquote(info.info.entry.relative_url.cdata)
+    root = ET.fromstring(infoXml)
+    e = root.findall("./entry/relative-url")
+    Assert(1, len(e))
+    return urllib.parse.unquote(e[0].text)
 
 
 def GetWCMergeInfo():
@@ -112,13 +104,7 @@ def exception_handler(exception_type, exception, traceback):
 
 
 def countRevisions(logData):
-    if ('logentry' in dir(logData.log)):
-        revCount = 0
-        for rev in logData.log.logentry:
-            revCount = revCount+1
-        return revCount
-    else:
-        return 0
+    return len(logData.findall("./logentry"))
 
 
 class RevisionRangeParser:
@@ -164,7 +150,8 @@ def GetYoungestMergeSet(mergeSets):
         elif (maxRev == youngestRev):
             assert(False)
     youngestmergeSet = (youngestPath, mergeSets[youngestPath])
-    print(youngestmergeSet)
+    if args.debug:
+        print("mergesource: " + str(youngestmergeSet))
     return youngestmergeSet
 
 
@@ -175,8 +162,6 @@ if(args.debug is False):
 
 
 if not os.path.isdir(args.cwd) or not os.path.samefile(os.getcwd(), args.cwd):
-    print(args.cwd)
-    print(os.getcwd())
     raise Exception("args.cwd and actual cwd are different")
 
 # obtain the path and the revision in case of '-wc' argument
@@ -208,16 +193,15 @@ msg = msgTemplate.format(
 
 
 # build log message content, i.e. list each merge
-if ('logentry' in dir(logData.log)):
-    for rev in logData.log.logentry:
-        for line in rev.msg.cdata.splitlines():
-            line = re.sub('[a-zA-Z]{2,3}-[0-9]*', '', line)
-            line = re.sub('[ ]*:[ ]*', '', line)
-            line = re.sub('[\.]{3,}', '', line)
-            line = line.strip()
+for rev in logData.findall("./logentry/msg"):
+    for line in rev.text.splitlines():
+        line = re.sub('[a-zA-Z]{2,3}-[0-9]*', '', line)
+        line = re.sub('[ ]*:[ ]*', '', line)
+        line = re.sub('[\.]{3,}', '', line)
+        line = line.strip()
 
-            if len(line) > 0:
-                msg += line + "\n"
+        if len(line) > 0:
+            msg += line + "\n"
 
 with open(args.messageFile, "w+t") as f:
     f.write(msg)
