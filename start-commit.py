@@ -124,7 +124,7 @@ class RevisionRangeParser:
         for r in ranges:
             revs += RevisionRangeParser._parseRange(r)
         return revs
-    
+
     @staticmethod
     def _parseRange(revRangeStr):
         """
@@ -185,7 +185,7 @@ if(args.debug):
 # build log message header
 msgTemplate = """Merged {revCount} revision(s) {revs}
 from: {sourceBranch}
-to  : {targetBranch}\n\n"""
+to  : {targetBranch}\n"""
 msg = msgTemplate.format(
     revCount=str(countRevisions(logData)),
     revs=mergedInChangeset,
@@ -195,18 +195,25 @@ msg = msgTemplate.format(
 
 
 # build log message content, i.e. list each merge
-for rev in logData.findall("./logentry/msg"):
-    for line in rev.text.splitlines():
+for rev in logData.findall("./logentry"):
+
+    revNumber = rev.get('revision')
+    revMsg = rev.findall('./msg')[0].text
+    msg +="\n"
+    msg += "  " + "-"*10 + "\n"
+    
+    msg += "  " + mergeSourcePath + "@r" + str(revNumber) + "\n"
+    for line in revMsg.splitlines():
         # remove jira ID's
-        line = re.sub('[a-zA-Z]{2,3}-[0-9]*', '', line)
+        line = re.sub('[a-zA-Z]{2,3}-[0-9]*[ :]*', '', line)
 
         # cleanup mesages
-        line = re.sub('[ ]*:[ ]*', '', line)
         line = re.sub('[\.]{3,}', '', line)
-        line = line.strip()
 
         if len(line) > 0:
-            msg += line + "\n"
+            msg += "  " + line + "\n"
+    
+msg += "  " + "-"*10 + "\n"
 
 # write commit message to file for tortoise svn to use
 with open(args.messageFile, "w+t") as f:
