@@ -112,6 +112,7 @@ class RevisionRangeParser:
     e.g. 'r102-200,202'
     """
 
+    @staticmethod
     def parse(revStr):
         """
         e.g. 'r102-200,202'
@@ -123,7 +124,8 @@ class RevisionRangeParser:
         for r in ranges:
             revs += RevisionRangeParser._parseRange(r)
         return revs
-
+    
+    @staticmethod
     def _parseRange(revRangeStr):
         """
         e.g. '102-200', '202'
