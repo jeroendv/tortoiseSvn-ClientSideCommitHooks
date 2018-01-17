@@ -23,9 +23,9 @@ Not yet supported:
 * Reverse merges 
 * Mixed merges (merges and reverse merges combined)
 
-![](start-commit-example.png)
+![](docs/start-commit-example.png)
 ## configuration
 
-![](start-commit-config.png)
+![](docs/start-commit-config.png)
 
 
